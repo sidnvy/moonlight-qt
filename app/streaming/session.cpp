@@ -1,4 +1,5 @@
 #include "session.h"
+#include "audio/micaudiosender.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -584,7 +585,8 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_OpusDecoder(nullptr),
       m_AudioRenderer(nullptr),
       m_AudioSampleCount(0),
-      m_DropAudioEndTime(0)
+      m_DropAudioEndTime(0),
+      m_MicToastExpireTick(0)
 {
 }
 
@@ -1763,6 +1765,34 @@ void Session::setShouldExit(bool quitHostApp)
     m_ShouldExit = true;
 }
 
+void Session::toggleMicrophone()
+{
+    if (!m_MicSender) {
+        m_MicSender = std::make_unique<MicAudioSender>();
+    }
+
+    QString statusText;
+    if (m_MicSender->isActive()) {
+        m_MicSender->stop();
+        statusText = QStringLiteral("Microphone OFF");
+    }
+    else if ((LiGetHostFeatureFlags() & LI_FF_MIC_INPUT) == 0) {
+        statusText = QStringLiteral("Host does not support microphone");
+    }
+    else if (m_MicSender->start()) {
+        statusText = QStringLiteral("Microphone ON");
+    }
+    else {
+        statusText = QStringLiteral("Microphone failed to start");
+    }
+
+    if (m_MouseEmulationRefCount == 0) {
+        m_OverlayManager.updateOverlayText(Overlay::OverlayStatusUpdate, statusText.toUtf8().constData());
+        m_OverlayManager.setOverlayState(Overlay::OverlayStatusUpdate, true);
+        m_MicToastExpireTick = SDL_GetTicks() + 2000;
+    }
+}
+
 void Session::start()
 {
     // Wait for any old session to finish cleanup
@@ -1974,6 +2004,11 @@ void Session::exec()
     // Toggle the stats overlay if requested by the user
     m_OverlayManager.setOverlayState(Overlay::OverlayDebug, m_Preferences->showPerformanceOverlay);
 
+    if (m_Preferences->enableMicrophone && (LiGetHostFeatureFlags() & LI_FF_MIC_INPUT) != 0) {
+        m_MicSender = std::make_unique<MicAudioSender>();
+        m_MicSender->start();
+    }
+
     // Switch to async logging mode when we enter the SDL loop
     StreamUtils::enterAsyncLoggingMode();
 
@@ -1992,6 +2027,12 @@ void Session::exec()
         // issues that could cause indefinite timeouts, delayed joystick detection,
         // and other problems.
         if (!SDL_WaitEventTimeout(&event, 1000)) {
+            if (m_MicToastExpireTick != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), m_MicToastExpireTick)) {
+                m_MicToastExpireTick = 0;
+                if (m_MouseEmulationRefCount == 0) {
+                    m_OverlayManager.setOverlayState(Overlay::OverlayStatusUpdate, false);
+                }
+            }
             presence.runCallbacks();
             continue;
         }
@@ -2008,10 +2049,22 @@ void Session::exec()
             // ARM core in the Steam Link, so we will wait 10 ms instead.
             SDL_Delay(10);
 #endif
+            if (m_MicToastExpireTick != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), m_MicToastExpireTick)) {
+                m_MicToastExpireTick = 0;
+                if (m_MouseEmulationRefCount == 0) {
+                    m_OverlayManager.setOverlayState(Overlay::OverlayStatusUpdate, false);
+                }
+            }
             presence.runCallbacks();
             continue;
         }
 #endif
+        if (m_MicToastExpireTick != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), m_MicToastExpireTick)) {
+            m_MicToastExpireTick = 0;
+            if (m_MouseEmulationRefCount == 0) {
+                m_OverlayManager.setOverlayState(Overlay::OverlayStatusUpdate, false);
+            }
+        }
         switch (event.type) {
         case SDL_QUIT:
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
@@ -2325,6 +2378,12 @@ void Session::exec()
     }
 
 DispatchDeferredCleanup:
+    // Stop reverse microphone before tearing down SDL audio or ENet control stream
+    if (m_MicSender) {
+        m_MicSender->stop();
+        m_MicSender.reset();
+    }
+
     // Switch back to synchronous logging mode
     StreamUtils::exitAsyncLoggingMode();
 

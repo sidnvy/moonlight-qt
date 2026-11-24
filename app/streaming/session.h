@@ -2,6 +2,7 @@
 
 #include <QSemaphore>
 #include <QQuickWindow>
+#include <memory>
 
 #include <Limelight.h>
 #include <opus_multistream.h>
@@ -10,6 +11,8 @@
 #include "video/decoder.h"
 #include "audio/renderers/renderer.h"
 #include "video/overlaymanager.h"
+
+class MicAudioSender;
 
 class SupportedVideoFormatList : public QList<int>
 {
@@ -124,6 +127,8 @@ public:
     void flushWindowEvents();
 
     void setShouldExit(bool quitHostApp = false);
+
+    void toggleMicrophone();
 
 signals:
     void stageStarting(QString stage);
@@ -278,6 +283,8 @@ private:
     OPUS_MULTISTREAM_CONFIGURATION m_OriginalAudioConfig;
     int m_AudioSampleCount;
     Uint32 m_DropAudioEndTime;
+    std::unique_ptr<MicAudioSender> m_MicSender;
+    Uint32 m_MicToastExpireTick;
 
     Overlay::OverlayManager m_OverlayManager;
 

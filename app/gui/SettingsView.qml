@@ -950,6 +950,22 @@ Flickable {
                 }
 
                 CheckBox {
+                    id: enableMicrophoneCheck
+                    width: parent.width
+                    text: qsTr("Enable microphone uplink (Ctrl+Alt+Shift+U)")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.enableMicrophone
+                    onCheckedChanged: {
+                        StreamingPreferences.enableMicrophone = checked
+                    }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Forward local microphone audio to supported Apollo hosts. Toggle while streaming with Ctrl+Alt+Shift+U.")
+                }
+
+                CheckBox {
                     id: muteOnFocusLossCheck
                     width: parent.width
                     text: qsTr("Mute audio stream when Moonlight is not the active window")
