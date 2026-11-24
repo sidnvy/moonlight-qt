@@ -2,6 +2,7 @@
 
 #include "settings/streamingpreferences.h"
 #include "backend/computermanager.h"
+#include "scrollaccumulator.h"
 
 #include "SDL_compat.h"
 
@@ -130,6 +131,8 @@ public:
 
     void handleTouchFingerEvent(SDL_TouchFingerEvent* event);
 
+    void handleMultiGestureEvent(SDL_MultiGestureEvent* event);
+
     int getAttachedGamepadMask();
 
     void raiseAllKeys();
@@ -250,6 +253,10 @@ private:
     SDL_TimerID m_DragTimer;
     char m_DragButton;
     int m_NumFingersDown;
+
+    ScrollAccumulator m_VScrollAccum;
+    ScrollAccumulator m_HScrollAccum;
+    ScrollAccumulator m_PinchAccum;
 
     static const int k_ButtonMap[];
 };

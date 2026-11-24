@@ -1667,7 +1667,9 @@ bool Session::startConnectionAsync()
                       m_Preferences->playAudioOnHost,
                       m_InputHandler->getAttachedGamepadMask(),
                       !m_Preferences->multiController,
-                      rtspSessionUrl);
+                      rtspSessionUrl,
+                      m_Preferences->requestVirtualDisplay,
+                      m_Preferences->desktopScale);
     } catch (const GfeHttpResponseException& e) {
         emit displayLaunchError(tr("Host returned error: %1").arg(e.toQString()));
         return false;
@@ -2409,6 +2411,9 @@ void Session::exec()
         case SDL_FINGERMOTION:
         case SDL_FINGERUP:
             m_InputHandler->handleTouchFingerEvent(&event.tfinger);
+            break;
+        case SDL_MULTIGESTURE:
+            m_InputHandler->handleMultiGestureEvent(&event.mgesture);
             break;
         case SDL_CLIPBOARDUPDATE:
             if (m_ClipboardSync) {

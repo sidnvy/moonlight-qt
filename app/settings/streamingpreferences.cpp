@@ -23,6 +23,8 @@
 #define SER_HOSTAUDIO "hostaudio"
 #define SER_ENABLEMIC "enablemicrophone"
 #define SER_ENABLECLIPBOARDSYNC "enableclipboardsync"
+#define SER_VIRTUALDISPLAY "virtualdisplay"
+#define SER_DESKTOPSCALE "desktopscale"
 #define SER_MULTICONT "multicontroller"
 #define SER_AUDIOCFG "audiocfg"
 #define SER_VIDEOCFG "videocfg"
@@ -136,6 +138,8 @@ void StreamingPreferences::reload()
     playAudioOnHost = settings.value(SER_HOSTAUDIO, false).toBool();
     enableMicrophone = settings.value(SER_ENABLEMIC, false).toBool();
     enableClipboardSync = settings.value(SER_ENABLECLIPBOARDSYNC, true).toBool();
+    requestVirtualDisplay = settings.value(SER_VIRTUALDISPLAY, false).toBool();
+    desktopScale = settings.value(SER_DESKTOPSCALE, 0.0).toDouble();
     multiController = settings.value(SER_MULTICONT, true).toBool();
     enableMdns = settings.value(SER_MDNS, true).toBool();
     quitAppAfter = settings.value(SER_QUITAPPAFTER, false).toBool();
@@ -338,6 +342,8 @@ void StreamingPreferences::save()
     settings.setValue(SER_HOSTAUDIO, playAudioOnHost);
     settings.setValue(SER_ENABLEMIC, enableMicrophone);
     settings.setValue(SER_ENABLECLIPBOARDSYNC, enableClipboardSync);
+    settings.setValue(SER_VIRTUALDISPLAY, requestVirtualDisplay);
+    settings.setValue(SER_DESKTOPSCALE, desktopScale);
     settings.setValue(SER_MULTICONT, multiController);
     settings.setValue(SER_MDNS, enableMdns);
     settings.setValue(SER_QUITAPPAFTER, quitAppAfter);

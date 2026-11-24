@@ -130,6 +130,8 @@ public:
     Q_PROPERTY(bool playAudioOnHost MEMBER playAudioOnHost NOTIFY playAudioOnHostChanged)
     Q_PROPERTY(bool enableMicrophone MEMBER enableMicrophone NOTIFY enableMicrophoneChanged)
     Q_PROPERTY(bool enableClipboardSync MEMBER enableClipboardSync NOTIFY enableClipboardSyncChanged)
+    Q_PROPERTY(bool requestVirtualDisplay MEMBER requestVirtualDisplay NOTIFY requestVirtualDisplayChanged)
+    Q_PROPERTY(double desktopScale MEMBER desktopScale NOTIFY desktopScaleChanged)
     Q_PROPERTY(bool multiController MEMBER multiController NOTIFY multiControllerChanged)
     Q_PROPERTY(bool enableMdns MEMBER enableMdns NOTIFY enableMdnsChanged)
     Q_PROPERTY(bool quitAppAfter MEMBER quitAppAfter NOTIFY quitAppAfterChanged)
@@ -174,6 +176,8 @@ public:
     bool playAudioOnHost;
     bool enableMicrophone;
     bool enableClipboardSync;
+    bool requestVirtualDisplay;
+    double desktopScale;
     bool multiController;
     bool enableMdns;
     bool quitAppAfter;
@@ -215,6 +219,8 @@ signals:
     void playAudioOnHostChanged();
     void enableMicrophoneChanged();
     void enableClipboardSyncChanged();
+    void requestVirtualDisplayChanged();
+    void desktopScaleChanged();
     void multiControllerChanged();
     void unsupportedFpsChanged();
     void enableMdnsChanged();

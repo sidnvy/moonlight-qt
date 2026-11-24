@@ -205,12 +205,24 @@ NvHTTP::startApp(QString verb,
                  bool localAudio,
                  int gamepadMask,
                  bool persistGameControllersOnDisconnect,
-                 QString& rtspSessionUrl)
+                 QString& rtspSessionUrl,
+                 bool virtualDisplay,
+                 double desktopScale)
 {
     int riKeyId;
 
     memcpy(&riKeyId, streamConfig->remoteInputAesIv, sizeof(riKeyId));
     riKeyId = qFromBigEndian(riKeyId);
+
+    QString streamDeskDisplayArgs;
+    if (!isGfe) {
+        if (virtualDisplay) {
+            streamDeskDisplayArgs += "&virtualDisplay=1";
+        }
+        if (desktopScale >= 0.5 && desktopScale <= 4.0) {
+            streamDeskDisplayArgs += "&desktopScale=" + QString::number(desktopScale, 'f', 2);
+        }
+    }
 
     QString response =
             openConnectionToString(m_BaseUrlHttps,
@@ -234,6 +246,7 @@ NvHTTP::startApp(QString verb,
                                    "&remoteControllersBitmap="+QString::number(gamepadMask)+
                                    "&gcmap="+QString::number(gamepadMask)+
                                    "&gcpersist="+QString::number(persistGameControllersOnDisconnect ? 1 : 0)+
+                                   streamDeskDisplayArgs+
                                    LiGetLaunchUrlQueryParameters(),
                                    LAUNCH_TIMEOUT_MS);
 

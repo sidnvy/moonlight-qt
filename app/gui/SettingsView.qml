@@ -982,6 +982,60 @@ Flickable {
                 }
 
                 CheckBox {
+                    id: requestVirtualDisplayCheck
+                    width: parent.width
+                    text: qsTr("Request virtual display from host")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.requestVirtualDisplay
+                    onCheckedChanged: {
+                        StreamingPreferences.requestVirtualDisplay = checked
+                    }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Asks supported Apollo hosts to spawn a headless virtual display instead of mirroring a physical monitor.")
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 12
+
+                    Label {
+                        text: qsTr("Host desktop scale:")
+                        font.pointSize: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    ComboBox {
+                        id: desktopScaleCombo
+                        textRole: "text"
+                        model: [
+                            { text: qsTr("Host default"), val: 0.0 },
+                            { text: "100% (1.0x)", val: 1.0 },
+                            { text: "125% (1.25x)", val: 1.25 },
+                            { text: "150% (1.5x)", val: 1.5 },
+                            { text: "175% (1.75x)", val: 1.75 },
+                            { text: "200% (2.0x)", val: 2.0 },
+                            { text: "250% (2.5x)", val: 2.5 },
+                            { text: "300% (3.0x)", val: 3.0 }
+                        ]
+                        Component.onCompleted: {
+                            for (var i = 0; i < model.length; ++i) {
+                                if (Math.abs(model[i].val - StreamingPreferences.desktopScale) < 0.01) {
+                                    currentIndex = i
+                                    return
+                                }
+                            }
+                            currentIndex = 0
+                        }
+                        onActivated: {
+                            StreamingPreferences.desktopScale = model[currentIndex].val
+                        }
+                    }
+                }
+
+                CheckBox {
                     id: muteOnFocusLossCheck
                     width: parent.width
                     text: qsTr("Mute audio stream when Moonlight is not the active window")

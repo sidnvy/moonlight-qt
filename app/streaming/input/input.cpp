@@ -288,6 +288,9 @@ void SdlInputHandler::notifyFocusLost()
     // Raise all keys that are currently pressed. If we don't do this, certain keys
     // used in shortcuts that cause focus loss (such as Alt+Tab) may get stuck down.
     raiseAllKeys();
+    m_VScrollAccum.reset();
+    m_HScrollAccum.reset();
+    m_PinchAccum.reset();
 }
 
 void SdlInputHandler::notifyFocusGained()
@@ -392,6 +395,10 @@ void SdlInputHandler::setCaptureActive(bool active)
         }
     }
     else {
+        m_VScrollAccum.reset();
+        m_HScrollAccum.reset();
+        m_PinchAccum.reset();
+
         if (m_FakeMouseCaptureActive) {
             // Display the cursor again
             SDL_ShowCursor(SDL_ENABLE);

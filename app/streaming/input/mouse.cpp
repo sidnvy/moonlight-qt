@@ -211,7 +211,10 @@ void SdlInputHandler::handleMouseWheelEvent(SDL_MouseWheelEvent* event)
         event->preciseY = SDL_clamp(event->preciseY, -1.0f, 1.0f);
 #endif
 
-        LiSendHighResScrollEvent((short)(event->preciseY * 120)); // WHEEL_DELTA
+        int16_t scrollDelta = m_VScrollAccum.accumulate(event->preciseY);
+        if (scrollDelta != 0) {
+            LiSendHighResScrollEvent(scrollDelta);
+        }
     }
 
     if (event->preciseX != 0.0f) {
@@ -226,7 +229,10 @@ void SdlInputHandler::handleMouseWheelEvent(SDL_MouseWheelEvent* event)
         event->preciseX = SDL_clamp(event->preciseX, -1.0f, 1.0f);
 #endif
 
-        LiSendHighResHScrollEvent((short)(event->preciseX * 120)); // WHEEL_DELTA
+        int16_t hScrollDelta = m_HScrollAccum.accumulate(event->preciseX);
+        if (hScrollDelta != 0) {
+            LiSendHighResHScrollEvent(hScrollDelta);
+        }
     }
 #else
     if (event->y != 0) {
@@ -257,6 +263,27 @@ void SdlInputHandler::handleMouseWheelEvent(SDL_MouseWheelEvent* event)
         LiSendHScrollEvent((signed char)event->x);
     }
 #endif
+}
+
+void SdlInputHandler::handleMultiGestureEvent(SDL_MultiGestureEvent* event)
+{
+    if (!isCaptureActive() || event->numFingers != 2) {
+        return;
+    }
+
+    int16_t pinchDelta = m_PinchAccum.accumulatePinch(event->dDist);
+    if (pinchDelta == 0) {
+        return;
+    }
+
+    const bool ctrlAlreadyHeld = (SDL_GetModState() & KMOD_CTRL) != 0;
+    if (!ctrlAlreadyHeld) {
+        LiSendKeyboardEvent(0xA2, KEY_ACTION_DOWN, 0);
+    }
+    LiSendHighResScrollEvent(pinchDelta);
+    if (!ctrlAlreadyHeld) {
+        LiSendKeyboardEvent(0xA2, KEY_ACTION_UP, 0);
+    }
 }
 
 bool SdlInputHandler::isMouseInVideoRegion(int mouseX, int mouseY, int windowWidth, int windowHeight)

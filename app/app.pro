@@ -230,6 +230,7 @@ HEADERS += \
     cli/startstream.h \
     settings/streamingpreferences.h \
     streaming/input/input.h \
+    streaming/input/scrollaccumulator.h \
     streaming/session.h \
     streaming/audio/micaudiosender.h \
     streaming/clipboard/clipboardsync.h \
