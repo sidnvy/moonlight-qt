@@ -955,6 +955,9 @@ bool Session::initialize(QQuickWindow* qtWindow)
         {
             const char* videoDriver = SDL_GetCurrentVideoDriver();
             if (videoDriver != nullptr && SDL_strcmp(videoDriver, "wayland") == 0) {
+                // Wayland does not support client-driven exclusive modesetting, and
+                // under sdl2-compat + fractional scaling ApplyFullscreenMode() fails
+                // when a physical display mode doesn't match the logical desktop mode.
                 m_FullScreenFlag = SDL_WINDOW_FULLSCREEN_DESKTOP;
             }
             else {
@@ -1771,13 +1774,7 @@ bool Session::startConnectionAsync()
         return false;
     }
 
-#ifdef Q_OS_LINUX
-    if (!m_IsFullScreen) {
-        emit connectionStarted();
-    }
-#else
     emit connectionStarted();
-#endif
     return true;
 }
 
@@ -1906,13 +1903,15 @@ void Session::exec()
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 
+    const char* videoDriver = SDL_GetCurrentVideoDriver();
+    const bool isWayland = (videoDriver != nullptr && SDL_strcmp(videoDriver, "wayland") == 0);
+
     // We always want a resizable window with High DPI enabled
     Uint32 defaultWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
-#ifdef Q_OS_LINUX
-    if (m_IsFullScreen) {
-        defaultWindowFlags |= SDL_WINDOW_HIDDEN;
+    if (m_IsFullScreen && isWayland && m_FullScreenFlag == SDL_WINDOW_FULLSCREEN_DESKTOP) {
+        // Map the Wayland xdg_toplevel directly in fullscreen without an intermediate tiled frame.
+        defaultWindowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     }
-#endif
 
     // If we're starting in windowed mode and the Moonlight GUI is maximized or
     // minimized, match that with the streaming window.
@@ -2002,13 +2001,20 @@ void Session::exec()
     updateOptimalWindowDisplayMode();
 
     // Enter full screen if requested
-    if (m_IsFullScreen) {
-        SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
-#ifdef Q_OS_LINUX
-        SDL_ShowWindow(m_Window);
-        emit connectionStarted();
-        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-#endif
+    if (m_IsFullScreen && !(SDL_GetWindowFlags(m_Window) & SDL_WINDOW_FULLSCREEN)) {
+        if (SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag) != 0) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                        "SDL_SetWindowFullscreen() failed: %s",
+                        SDL_GetError());
+            if (m_FullScreenFlag == SDL_WINDOW_FULLSCREEN) {
+                m_FullScreenFlag = SDL_WINDOW_FULLSCREEN_DESKTOP;
+                if (SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag) != 0) {
+                    SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                                "SDL_SetWindowFullscreen(DESKTOP) fallback failed: %s",
+                                SDL_GetError());
+                }
+            }
+        }
     }
 
     bool needsFirstEnterCapture = false;
@@ -2195,7 +2201,8 @@ void Session::exec()
                     m_AudioMuted = false;
                 }
                 m_InputHandler->notifyFocusGained();
-                if (m_IsFullScreen && !m_InputHandler->isCaptureActive()) {
+                if (needsFirstEnterCapture &&
+                    (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_FULLSCREEN)) {
                     m_InputHandler->setCaptureActive(true);
                     needsFirstEnterCapture = false;
                 }
@@ -2212,11 +2219,6 @@ void Session::exec()
             if (needsFirstEnterCapture && event.window.event == SDL_WINDOWEVENT_ENTER) {
                 m_InputHandler->setCaptureActive(true);
                 needsFirstEnterCapture = false;
-            }
-
-            if (event.window.event == SDL_WINDOWEVENT_SHOWN && m_IsFullScreen &&
-                !(SDL_GetWindowFlags(m_Window) & SDL_WINDOW_FULLSCREEN)) {
-                SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
             }
 
             // We want to recreate the decoder for resizes (full-screen toggles) and the initial shown event.
