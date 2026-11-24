@@ -952,7 +952,15 @@ bool Session::initialize(QQuickWindow* qtWindow)
             m_FullScreenFlag = SDL_WINDOW_FULLSCREEN;
         }
 #else
-        m_FullScreenFlag = SDL_WINDOW_FULLSCREEN;
+        {
+            const char* videoDriver = SDL_GetCurrentVideoDriver();
+            if (videoDriver != nullptr && SDL_strcmp(videoDriver, "wayland") == 0) {
+                m_FullScreenFlag = SDL_WINDOW_FULLSCREEN_DESKTOP;
+            }
+            else {
+                m_FullScreenFlag = SDL_WINDOW_FULLSCREEN;
+            }
+        }
 #endif
         break;
     }
@@ -1763,7 +1771,13 @@ bool Session::startConnectionAsync()
         return false;
     }
 
+#ifdef Q_OS_LINUX
+    if (!m_IsFullScreen) {
+        emit connectionStarted();
+    }
+#else
     emit connectionStarted();
+#endif
     return true;
 }
 
@@ -1894,6 +1908,11 @@ void Session::exec()
 
     // We always want a resizable window with High DPI enabled
     Uint32 defaultWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
+#ifdef Q_OS_LINUX
+    if (m_IsFullScreen) {
+        defaultWindowFlags |= SDL_WINDOW_HIDDEN;
+    }
+#endif
 
     // If we're starting in windowed mode and the Moonlight GUI is maximized or
     // minimized, match that with the streaming window.
@@ -1985,6 +2004,11 @@ void Session::exec()
     // Enter full screen if requested
     if (m_IsFullScreen) {
         SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
+#ifdef Q_OS_LINUX
+        SDL_ShowWindow(m_Window);
+        emit connectionStarted();
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+#endif
     }
 
     bool needsFirstEnterCapture = false;
@@ -2171,6 +2195,11 @@ void Session::exec()
                     m_AudioMuted = false;
                 }
                 m_InputHandler->notifyFocusGained();
+                if (m_IsFullScreen && !m_InputHandler->isCaptureActive()) {
+                    m_InputHandler->setCaptureActive(true);
+                    needsFirstEnterCapture = false;
+                }
+                m_InputHandler->updateKeyboardGrabState();
                 break;
             case SDL_WINDOWEVENT_LEAVE:
                 m_InputHandler->notifyMouseLeave();
@@ -2183,6 +2212,11 @@ void Session::exec()
             if (needsFirstEnterCapture && event.window.event == SDL_WINDOWEVENT_ENTER) {
                 m_InputHandler->setCaptureActive(true);
                 needsFirstEnterCapture = false;
+            }
+
+            if (event.window.event == SDL_WINDOWEVENT_SHOWN && m_IsFullScreen &&
+                !(SDL_GetWindowFlags(m_Window) & SDL_WINDOW_FULLSCREEN)) {
+                SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
             }
 
             // We want to recreate the decoder for resizes (full-screen toggles) and the initial shown event.
