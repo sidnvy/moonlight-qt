@@ -133,6 +133,12 @@ public:
 
     void handleMultiGestureEvent(SDL_MultiGestureEvent* event);
 
+    void handlePinchBegin();
+
+    void handlePinchUpdate(float scale);
+
+    void handlePinchEnd();
+
     int getAttachedGamepadMask();
 
     void raiseAllKeys();
@@ -254,9 +260,13 @@ private:
     char m_DragButton;
     int m_NumFingersDown;
 
+    void releasePinchCtrlIfHeld();
+
     ScrollAccumulator m_VScrollAccum;
     ScrollAccumulator m_HScrollAccum;
     ScrollAccumulator m_PinchAccum;
+    bool m_PinchCtrlHeld;
+    float m_LastPinchScale;
 
     static const int k_ButtonMap[];
 };

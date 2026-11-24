@@ -2456,6 +2456,22 @@ void Session::exec()
         case SDL_MULTIGESTURE:
             m_InputHandler->handleMultiGestureEvent(&event.mgesture);
             break;
+        case 0x710: // SDL3 SDL_EVENT_PINCH_BEGIN forwarded by sdl2-compat
+            m_InputHandler->handlePinchBegin();
+            break;
+        case 0x711: // SDL3 SDL_EVENT_PINCH_UPDATE forwarded by sdl2-compat
+        {
+            static_assert(sizeof(SDL_CommonEvent) == 8, "Unexpected SDL2 SDL_CommonEvent size");
+            float scale = 0.0f;
+            SDL_memcpy(&scale,
+                       reinterpret_cast<const uint8_t*>(&event) + sizeof(SDL_CommonEvent),
+                       sizeof(scale));
+            m_InputHandler->handlePinchUpdate(scale);
+            break;
+        }
+        case 0x712: // SDL3 SDL_EVENT_PINCH_END forwarded by sdl2-compat
+            m_InputHandler->handlePinchEnd();
+            break;
         case SDL_CLIPBOARDUPDATE:
             if (m_ClipboardSync) {
                 m_ClipboardSync->onLocalClipboardChanged();

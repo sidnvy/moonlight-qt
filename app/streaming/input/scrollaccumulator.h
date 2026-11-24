@@ -13,6 +13,7 @@ class ScrollAccumulator
 public:
     static constexpr float kWheelDelta = 120.0f;
     static constexpr float kPinchDeltaScale = 400.0f;
+    static constexpr float kPinchLogScale = 800.0f;
 
     int16_t accumulate(float preciseDelta)
     {
@@ -22,6 +23,21 @@ public:
     int16_t accumulatePinch(float dDist)
     {
         return accumulateScaled(dDist, kPinchDeltaScale);
+    }
+
+    int16_t accumulatePinchScale(float scale, float& lastScale)
+    {
+        if (!std::isfinite(scale) || scale <= 0.0f) {
+            return 0;
+        }
+        if (!std::isfinite(lastScale) || lastScale <= 0.0f) {
+            lastScale = scale;
+            return 0;
+        }
+
+        const float logDelta = std::log(scale / lastScale);
+        lastScale = scale;
+        return accumulateScaled(logDelta, kPinchLogScale);
     }
 
     void reset()

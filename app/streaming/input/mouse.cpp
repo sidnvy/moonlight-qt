@@ -278,12 +278,52 @@ void SdlInputHandler::handleMultiGestureEvent(SDL_MultiGestureEvent* event)
 
     const bool ctrlAlreadyHeld = (SDL_GetModState() & KMOD_CTRL) != 0;
     if (!ctrlAlreadyHeld) {
-        LiSendKeyboardEvent(0xA2, KEY_ACTION_DOWN, 0);
+        LiSendKeyboardEvent(0x80A2, KEY_ACTION_DOWN, 0);
     }
     LiSendHighResScrollEvent(pinchDelta);
     if (!ctrlAlreadyHeld) {
-        LiSendKeyboardEvent(0xA2, KEY_ACTION_UP, 0);
+        LiSendKeyboardEvent(0x80A2, KEY_ACTION_UP, 0);
     }
+}
+
+void SdlInputHandler::releasePinchCtrlIfHeld()
+{
+    if (m_PinchCtrlHeld) {
+        LiSendKeyboardEvent(0x80A2, KEY_ACTION_UP, 0);
+        m_PinchCtrlHeld = false;
+    }
+}
+
+void SdlInputHandler::handlePinchBegin()
+{
+    releasePinchCtrlIfHeld();
+    m_PinchAccum.reset();
+    m_LastPinchScale = 1.0f;
+}
+
+void SdlInputHandler::handlePinchUpdate(float scale)
+{
+    if (!isCaptureActive()) {
+        return;
+    }
+
+    const int16_t pinchDelta = m_PinchAccum.accumulatePinchScale(scale, m_LastPinchScale);
+    if (pinchDelta == 0) {
+        return;
+    }
+
+    if (!m_PinchCtrlHeld && (SDL_GetModState() & KMOD_CTRL) == 0) {
+        LiSendKeyboardEvent(0x80A2, KEY_ACTION_DOWN, 0);
+        m_PinchCtrlHeld = true;
+    }
+    LiSendHighResScrollEvent(pinchDelta);
+}
+
+void SdlInputHandler::handlePinchEnd()
+{
+    releasePinchCtrlIfHeld();
+    m_PinchAccum.reset();
+    m_LastPinchScale = 1.0f;
 }
 
 bool SdlInputHandler::isMouseInVideoRegion(int mouseX, int mouseY, int windowWidth, int windowHeight)
