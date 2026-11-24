@@ -33,9 +33,7 @@ SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, i
       m_RightButtonReleaseTimer(0),
       m_DragTimer(0),
       m_DragButton(0),
-      m_NumFingersDown(0),
-      m_PinchCtrlHeld(false),
-      m_LastPinchScale(1.0f)
+      m_NumFingersDown(0)
 {
     // System keys are always captured when running without a DE
     if (!WMUtils::isRunningDesktopEnvironment()) {
@@ -225,8 +223,6 @@ SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, i
 
 SdlInputHandler::~SdlInputHandler()
 {
-    handlePinchEnd();
-
     for (int i = 0; i < MAX_GAMEPADS; i++) {
         if (m_GamepadState[i].mouseEmulationTimer != 0) {
             Session::get()->notifyMouseEmulationMode(false);
@@ -294,7 +290,7 @@ void SdlInputHandler::notifyFocusLost()
     raiseAllKeys();
     m_VScrollAccum.reset();
     m_HScrollAccum.reset();
-    handlePinchEnd();
+    m_PinchAccum.reset();
 }
 
 void SdlInputHandler::notifyFocusGained()
@@ -401,7 +397,7 @@ void SdlInputHandler::setCaptureActive(bool active)
     else {
         m_VScrollAccum.reset();
         m_HScrollAccum.reset();
-        handlePinchEnd();
+        m_PinchAccum.reset();
 
         if (m_FakeMouseCaptureActive) {
             // Display the cursor again
