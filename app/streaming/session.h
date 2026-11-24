@@ -265,6 +265,7 @@ private:
     SDL_mutex* m_DecoderLock;
     bool m_AudioMuted;
     Uint32 m_FullScreenFlag;
+    Uint32 m_WindowGraphicsFlags;
     QQuickWindow* m_QtWindow;
     bool m_UnexpectedTermination;
     SdlInputHandler* m_InputHandler;

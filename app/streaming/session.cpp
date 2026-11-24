@@ -590,6 +590,9 @@ bool Session::populateDecoderProperties(SDL_Window* window)
         m_IsFullScreen = true;
     }
 
+    Uint32 graphicsFlags = SDL_GetWindowFlags(window) & (SDL_WINDOW_OPENGL | SDL_WINDOW_VULKAN | SDL_WINDOW_METAL);
+    m_WindowGraphicsFlags = graphicsFlags ? graphicsFlags : StreamUtils::getPlatformWindowFlags();
+
     delete decoder;
 
     return true;
@@ -604,6 +607,7 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_VideoDecoder(nullptr),
       m_DecoderLock(SDL_CreateMutex()),
       m_AudioMuted(false),
+      m_WindowGraphicsFlags(0),
       m_QtWindow(nullptr),
       m_UnexpectedTermination(true), // Failure prior to streaming is unexpected
       m_InputHandler(nullptr),
@@ -1943,12 +1947,13 @@ void Session::exec()
     std::string windowName = QString(m_Computer->name + " - Moonlight").toStdString();
 #endif
 
+    Uint32 windowGraphicsFlags = m_WindowGraphicsFlags ? m_WindowGraphicsFlags : StreamUtils::getPlatformWindowFlags();
     m_Window = SDL_CreateWindow(windowName.c_str(),
                                 x,
                                 y,
                                 width,
                                 height,
-                                defaultWindowFlags | StreamUtils::getPlatformWindowFlags());
+                                defaultWindowFlags | windowGraphicsFlags);
     if (!m_Window) {
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                     "SDL_CreateWindow() failed with platform flags: %s",
