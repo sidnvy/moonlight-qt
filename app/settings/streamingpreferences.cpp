@@ -22,6 +22,7 @@
 #define SER_GAMEOPTS "gameopts"
 #define SER_HOSTAUDIO "hostaudio"
 #define SER_ENABLEMIC "enablemicrophone"
+#define SER_ENABLECLIPBOARDSYNC "enableclipboardsync"
 #define SER_MULTICONT "multicontroller"
 #define SER_AUDIOCFG "audiocfg"
 #define SER_VIDEOCFG "videocfg"
@@ -134,6 +135,7 @@ void StreamingPreferences::reload()
     gameOptimizations = settings.value(SER_GAMEOPTS, true).toBool();
     playAudioOnHost = settings.value(SER_HOSTAUDIO, false).toBool();
     enableMicrophone = settings.value(SER_ENABLEMIC, false).toBool();
+    enableClipboardSync = settings.value(SER_ENABLECLIPBOARDSYNC, true).toBool();
     multiController = settings.value(SER_MULTICONT, true).toBool();
     enableMdns = settings.value(SER_MDNS, true).toBool();
     quitAppAfter = settings.value(SER_QUITAPPAFTER, false).toBool();
@@ -335,6 +337,7 @@ void StreamingPreferences::save()
     settings.setValue(SER_GAMEOPTS, gameOptimizations);
     settings.setValue(SER_HOSTAUDIO, playAudioOnHost);
     settings.setValue(SER_ENABLEMIC, enableMicrophone);
+    settings.setValue(SER_ENABLECLIPBOARDSYNC, enableClipboardSync);
     settings.setValue(SER_MULTICONT, multiController);
     settings.setValue(SER_MDNS, enableMdns);
     settings.setValue(SER_QUITAPPAFTER, quitAppAfter);

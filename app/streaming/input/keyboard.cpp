@@ -123,7 +123,12 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
             }
 
             // Send this text to the PC
-            LiSendUtf8TextEvent(text, (unsigned int)strlen(text));
+            if ((LiGetHostFeatureFlags() & LI_FF_COMMIT_TEXT) != 0) {
+                LiSendCommitText(text, (unsigned int)strlen(text));
+            }
+            else {
+                LiSendUtf8TextEvent(text, (unsigned int)strlen(text));
+            }
 
             // SDL_GetClipboardText() allocates, so we must free
             SDL_free((void*)text);

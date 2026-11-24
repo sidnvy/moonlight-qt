@@ -966,6 +966,22 @@ Flickable {
                 }
 
                 CheckBox {
+                    id: enableClipboardSyncCheck
+                    width: parent.width
+                    text: qsTr("Enable bidirectional clipboard sync")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.enableClipboardSync
+                    onCheckedChanged: {
+                        StreamingPreferences.enableClipboardSync = checked
+                    }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Synchronize clipboard text in real time with supported hosts over the encrypted control channel.")
+                }
+
+                CheckBox {
                     id: muteOnFocusLossCheck
                     width: parent.width
                     text: qsTr("Mute audio stream when Moonlight is not the active window")

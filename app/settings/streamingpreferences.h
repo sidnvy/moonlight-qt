@@ -129,6 +129,7 @@ public:
     Q_PROPERTY(bool gameOptimizations MEMBER gameOptimizations NOTIFY gameOptimizationsChanged)
     Q_PROPERTY(bool playAudioOnHost MEMBER playAudioOnHost NOTIFY playAudioOnHostChanged)
     Q_PROPERTY(bool enableMicrophone MEMBER enableMicrophone NOTIFY enableMicrophoneChanged)
+    Q_PROPERTY(bool enableClipboardSync MEMBER enableClipboardSync NOTIFY enableClipboardSyncChanged)
     Q_PROPERTY(bool multiController MEMBER multiController NOTIFY multiControllerChanged)
     Q_PROPERTY(bool enableMdns MEMBER enableMdns NOTIFY enableMdnsChanged)
     Q_PROPERTY(bool quitAppAfter MEMBER quitAppAfter NOTIFY quitAppAfterChanged)
@@ -172,6 +173,7 @@ public:
     bool gameOptimizations;
     bool playAudioOnHost;
     bool enableMicrophone;
+    bool enableClipboardSync;
     bool multiController;
     bool enableMdns;
     bool quitAppAfter;
@@ -212,6 +214,7 @@ signals:
     void gameOptimizationsChanged();
     void playAudioOnHostChanged();
     void enableMicrophoneChanged();
+    void enableClipboardSyncChanged();
     void multiControllerChanged();
     void unsupportedFpsChanged();
     void enableMdnsChanged();

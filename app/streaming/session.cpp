@@ -1,5 +1,6 @@
 #include "session.h"
 #include "audio/micaudiosender.h"
+#include "clipboard/clipboardsync.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -29,6 +30,15 @@
 #define SDL_CODE_GAMECONTROLLER_SET_MOTION_EVENT_STATE 103
 #define SDL_CODE_GAMECONTROLLER_SET_CONTROLLER_LED 104
 #define SDL_CODE_GAMECONTROLLER_SET_ADAPTIVE_TRIGGERS 105
+#define SDL_CODE_CLIPBOARD_EVENT 106
+
+namespace {
+struct RemoteClipboardPayload {
+    QString text;
+    uint64_t hash;
+    uint8_t flags;
+};
+}
 
 #include <openssl/rand.h>
 
@@ -61,7 +71,8 @@ CONNECTION_LISTENER_CALLBACKS Session::k_ConnCallbacks = {
     Session::clRumbleTriggers,
     Session::clSetMotionEventState,
     Session::clSetControllerLED,
-    Session::clSetAdaptiveTriggers
+    Session::clSetAdaptiveTriggers,
+    Session::clClipboardText
 };
 
 Session* Session::s_ActiveSession;
@@ -273,6 +284,25 @@ void Session::clSetAdaptiveTriggers(uint16_t controllerNumber, uint8_t eventFlag
 
     setControllerLEDEvent.user.data2 = (void *) state;
     SDL_PushEvent(&setControllerLEDEvent);
+}
+
+void Session::clClipboardText(const char* utf8Text, uint32_t length, uint64_t contentHash, uint8_t flags)
+{
+    if (utf8Text == nullptr || length == 0) {
+        return;
+    }
+
+    SDL_Event clipboardEvent = {};
+    clipboardEvent.type = SDL_USEREVENT;
+    clipboardEvent.user.code = SDL_CODE_CLIPBOARD_EVENT;
+    clipboardEvent.user.data1 = new RemoteClipboardPayload{
+        QString::fromUtf8(utf8Text, static_cast<int>(length)),
+        contentHash,
+        flags
+    };
+    if (SDL_PushEvent(&clipboardEvent) <= 0) {
+        delete static_cast<RemoteClipboardPayload*>(clipboardEvent.user.data1);
+    }
 }
 
 
@@ -2009,6 +2039,11 @@ void Session::exec()
         m_MicSender->start();
     }
 
+    if (m_Preferences->enableClipboardSync && (LiGetHostFeatureFlags() & LI_FF_CLIPBOARD_EVENT) != 0) {
+        m_ClipboardSync = std::make_unique<ClipboardSync>();
+        m_ClipboardSync->start();
+    }
+
     // Switch to async logging mode when we enter the SDL loop
     StreamUtils::enterAsyncLoggingMode();
 
@@ -2106,6 +2141,15 @@ void Session::exec()
                 m_InputHandler->setAdaptiveTriggers((uint16_t)(uintptr_t)event.user.data1,
                                                     (DualSenseOutputReport *)event.user.data2);
                 break;
+            case SDL_CODE_CLIPBOARD_EVENT:
+            {
+                auto* payload = static_cast<RemoteClipboardPayload*>(event.user.data1);
+                if (m_ClipboardSync && payload != nullptr) {
+                    m_ClipboardSync->onRemoteClipboardText(payload->text, payload->hash, payload->flags);
+                }
+                delete payload;
+                break;
+            }
             default:
                 SDL_assert(false);
             }
@@ -2366,6 +2410,12 @@ void Session::exec()
         case SDL_FINGERUP:
             m_InputHandler->handleTouchFingerEvent(&event.tfinger);
             break;
+        case SDL_CLIPBOARDUPDATE:
+            if (m_ClipboardSync) {
+                m_ClipboardSync->onLocalClipboardChanged();
+            }
+            break;
+
         case SDL_DISPLAYEVENT:
             switch (event.display.event) {
             case SDL_DISPLAYEVENT_CONNECTED:
@@ -2378,6 +2428,27 @@ void Session::exec()
     }
 
 DispatchDeferredCleanup:
+    if (m_ClipboardSync) {
+        m_ClipboardSync->stop();
+        m_ClipboardSync.reset();
+    }
+
+    // Drain any queued clipboard payloads before leaving the SDL loop
+    {
+        SDL_Event leftover;
+        while (SDL_PeepEvents(&leftover, 1, SDL_GETEVENT, SDL_USEREVENT, SDL_USEREVENT) > 0) {
+            if (leftover.user.code == SDL_CODE_CLIPBOARD_EVENT) {
+                delete static_cast<RemoteClipboardPayload*>(leftover.user.data1);
+            }
+            else {
+                // Re-queue non-clipboard events in case deferred cleanup needs them
+                if (leftover.user.code == SDL_CODE_GAMECONTROLLER_SET_ADAPTIVE_TRIGGERS) {
+                    SDL_free(leftover.user.data2);
+                }
+            }
+        }
+    }
+
     // Stop reverse microphone before tearing down SDL audio or ENet control stream
     if (m_MicSender) {
         m_MicSender->stop();

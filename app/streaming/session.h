@@ -13,6 +13,7 @@
 #include "video/overlaymanager.h"
 
 class MicAudioSender;
+class ClipboardSync;
 
 class SupportedVideoFormatList : public QList<int>
 {
@@ -229,6 +230,9 @@ private:
     void clSetAdaptiveTriggers(uint16_t controllerNumber, uint8_t eventFlags, uint8_t typeLeft, uint8_t typeRight, uint8_t *left, uint8_t *right);
 
     static
+    void clClipboardText(const char* utf8Text, uint32_t length, uint64_t contentHash, uint8_t flags);
+
+    static
     int arInit(int audioConfiguration,
                const POPUS_MULTISTREAM_CONFIGURATION opusConfig,
                void* arContext, int arFlags);
@@ -284,6 +288,7 @@ private:
     int m_AudioSampleCount;
     Uint32 m_DropAudioEndTime;
     std::unique_ptr<MicAudioSender> m_MicSender;
+    std::unique_ptr<ClipboardSync> m_ClipboardSync;
     Uint32 m_MicToastExpireTick;
 
     Overlay::OverlayManager m_OverlayManager;
