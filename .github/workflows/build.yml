@@ -55,10 +55,22 @@ jobs:
         with:
           pattern: Moonlight-*
           path: dist
-          merge-multiple: true
+          merge-multiple: false
+
+      - name: Package release assets
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          cp dist/Moonlight-LinuxAppImage-*/*.AppImage release-assets/
+          cp dist/Moonlight-macOS-*/*.dmg release-assets/
+          for dir in dist/Moonlight-Windows-x64-* dist/Moonlight-Windows-arm64-*; do
+            name="$(basename "$dir")"
+            python3 -c 'import shutil, sys; shutil.make_archive(sys.argv[1], "zip", sys.argv[2])' "release-assets/${name}" "$dir"
+          done
+          ls -la release-assets
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/**/*
+          files: release-assets/*
           generate_release_notes: true
