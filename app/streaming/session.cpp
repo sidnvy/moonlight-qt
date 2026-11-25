@@ -620,7 +620,8 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_AudioRenderer(nullptr),
       m_AudioSampleCount(0),
       m_DropAudioEndTime(0),
-      m_MicToastExpireTick(0)
+      m_MicToastExpireTick(0),
+      m_AutoDesktopScale(0.0)
 {
 }
 
@@ -635,6 +636,14 @@ Session::~Session()
 bool Session::initialize(QQuickWindow* qtWindow)
 {
     m_QtWindow = qtWindow;
+
+    QScreen* activeScreen = qtWindow && qtWindow->screen() ? qtWindow->screen() : QGuiApplication::primaryScreen();
+    if (activeScreen) {
+        double dpr = activeScreen->devicePixelRatio();
+        if (dpr >= 0.5 && dpr <= 4.0) {
+            m_AutoDesktopScale = dpr;
+        }
+    }
 
 #ifdef Q_OS_DARWIN
     if (qEnvironmentVariableIntValue("I_WANT_BUGGY_FULLSCREEN") == 0) {
@@ -1674,6 +1683,9 @@ bool Session::startConnectionAsync()
     QString rtspSessionUrl;
 
     try {
+        double effectiveDesktopScale = (m_Preferences->desktopScale >= 0.5 && m_Preferences->desktopScale <= 4.0)
+                ? m_Preferences->desktopScale
+                : m_AutoDesktopScale;
         NvHTTP http(m_Computer);
         http.startApp(m_Computer->currentGameId != 0 ? "resume" : "launch",
                       m_Computer->isNvidiaServerSoftware,
@@ -1684,7 +1696,7 @@ bool Session::startConnectionAsync()
                       !m_Preferences->multiController,
                       rtspSessionUrl,
                       m_Preferences->requestVirtualDisplay,
-                      m_Preferences->desktopScale);
+                      effectiveDesktopScale);
     } catch (const GfeHttpResponseException& e) {
         emit displayLaunchError(tr("Host returned error: %1").arg(e.toQString()));
         return false;

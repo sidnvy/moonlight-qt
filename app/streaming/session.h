@@ -291,6 +291,7 @@ private:
     std::unique_ptr<MicAudioSender> m_MicSender;
     std::unique_ptr<ClipboardSync> m_ClipboardSync;
     Uint32 m_MicToastExpireTick;
+    double m_AutoDesktopScale;
 
     Overlay::OverlayManager m_OverlayManager;
 
