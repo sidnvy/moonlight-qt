@@ -52,11 +52,11 @@ private:
             return 0;
         }
 
-        if (wholeFloat >= static_cast<float>(std::numeric_limits<int16_t>::max())) {
-            return std::numeric_limits<int16_t>::max();
+        if (wholeFloat >= static_cast<float>((std::numeric_limits<int16_t>::max)())) {
+            return (std::numeric_limits<int16_t>::max)();
         }
-        if (wholeFloat <= static_cast<float>(std::numeric_limits<int16_t>::min())) {
-            return std::numeric_limits<int16_t>::min();
+        if (wholeFloat <= static_cast<float>((std::numeric_limits<int16_t>::min)())) {
+            return (std::numeric_limits<int16_t>::min)();
         }
         return static_cast<int16_t>(wholeFloat);
     }
