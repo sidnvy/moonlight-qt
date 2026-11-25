@@ -83,12 +83,16 @@ jobs:
           QT_PATH: ${{ runner.workspace }}\Qt\${{ matrix.qt_version }}\msvc2022_arm64\bin
 
       - name: Import Apple signing certificate (macOS)
-        if: runner.os == 'macOS' && secrets.APPLE_CERT_P12_BASE64 != '' && secrets.APPLE_SIGNING_IDENTITY != ''
+        if: runner.os == 'macOS'
         env:
           APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
           APPLE_CERT_P12_PASSWORD: ${{ secrets.APPLE_CERT_P12_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
+          if [ -z "${APPLE_CERT_P12_BASE64:-}" ] || [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "No Apple signing secrets configured; continuing with unsigned macOS bundle."
+            exit 0
+          fi
           KEYCHAIN_PASS=$(openssl rand -hex 24)
           KEYCHAIN_PATH="$RUNNER_TEMP/build-signing.keychain-db"
           P12_PATH="$RUNNER_TEMP/cert.p12"
